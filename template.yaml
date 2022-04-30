@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  rfid-backend
+
+  SAM Template for rfid-backend
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+
+Parameters:
+  Env:
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+    Description: Environment in which the application will be deployed. Allowed values [dev, prod]
+
+Mappings:
+  EnvMapping:
+    dev:
+      dbHost: "{{resolve:ssm:DEV_DB_HOST}}"
+      dbName: "{{resolve:ssm:DEV_DB_NAME}}"
+      dbUser: "{{resolve:ssm:DEV_DB_USERNAME}}"
+      dbPass: "{{resolve:ssm:DEV_DB_PASSWORD}}"
+      dbPort: "{{resolve:ssm:DEV_DB_PORT}}"
+    prod:
+      dbHost: xxxxxxxxx # Database yet to be created
+      dbName: xxxxxxxxx # Database yet to be created
+      dbUser: xxxxxxxxx # Database yet to be created
+      dbPass: xxxxxxxxx # Database yet to be created
+      dbPort: xxxxxxxxx # Database yet to be created
+
+Globals:
+  Function:
+    Timeout: 3
+    Handler: app.lambdaHandler
+    Runtime: nodejs14.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        DB_HOST: !FindInMap [ EnvMapping, !Ref Env, dbHost ]
+        DB_NAME: !FindInMap [ EnvMapping, !Ref Env, dbName ]
+        DB_USER: !FindInMap [ EnvMapping, !Ref Env, dbUser ]
+        DB_PASS: !FindInMap [ EnvMapping, !Ref Env, dbPass ]
+        DB_PORT: !FindInMap [ EnvMapping, !Ref Env, dbPort ]
+        ResetVariable: 0 # Used for cold start!
+
+Resources:
+
+  ########## LAMBDA FUNCTIONS ##########
+  #Sample hello world function
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: api/hello-world/
+      Events:
+        HelloWorld:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /hello
+            Method: get
+      Layers:
+        - !Ref GeneralDependenciesLayer
+
+  #Users API to add/delete/modify/view User details
+  UsersAPIFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: api/users/
+      Events:
+        Users:
+          Type: Api 
+          Properties:
+            Path: /users
+            Method: ANY
+      Layers:
+        - !Ref GeneralDependenciesLayer
+
+  
+  ########## DEPENDENCIES ##########
+  #Common Dependencies
+  GeneralDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: dependencies
+      Description: Common Dependencies
+      ContentUri: dependencies/general/
+      CompatibleRuntimes:
+        - nodejs14.x
+      LicenseInfo: "MIT"
+      RetentionPolicy: Retain
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

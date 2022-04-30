@@ -1,0 +1,11 @@
+{
+  "name": "users",
+  "version": "1.0.0",
+  "description": "Users api to add/delete/modify/view user details",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
